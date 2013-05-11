@@ -110,6 +110,7 @@ public class Simple
 					long amount = parseXBT (System.console ().readLine ());
 					Transaction spend = am.pay (AddressConverter.fromSatoshiStyle (address, addressFlag), amount, 10000);
 					api.sendTransaction (spend);
+					System.console ().printf ("Sent transaction: " + spend.getHash ());
 					w.persist ();
 				}
 				else
