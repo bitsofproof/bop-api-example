@@ -27,9 +27,51 @@
 		</developer>
 	</developers>
 
+	<repositories>
+		<repository>
+			<id>bitsofproof</id>
+			<name>BOP Enterprise Bitcoin Server Repository</name>
+			<url>http://maven.bitsofproof.com/maven</url>
+		</repository>
+	</repositories>
+		
+	<dependencies>
+		<dependency>
+			<groupId>com.bitsofproof</groupId>
+			<artifactId>bitsofproof-server-api</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<version>1.48</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>2.4.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.fusesource.stompjms</groupId>
+			<artifactId>stompjms-client</artifactId>
+			<version>1.16-bop-patch</version>
+		</dependency>						
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.6.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.6.6</version>
+		</dependency>
+	</dependencies>
+		
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -115,8 +157,6 @@
 		</extensions>
 	</build>
 
-	<repositories>
-	</repositories>
 	<distributionManagement>
 		<downloadUrl>http://maven.bitsofproof.com/maven</downloadUrl>
 		<repository>
@@ -128,21 +168,4 @@
 		</repository>
 	</distributionManagement>
 
-	<dependencies>
-		<dependency>
-			<groupId>com.bitsofproof</groupId>
-			<artifactId>bitsofproof-server-api</artifactId>
-			<version>1.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.6.6</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.6.6</version>
-		</dependency>
-	</dependencies>
 </project>
