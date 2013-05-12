@@ -19,6 +19,8 @@ import java.math.BigDecimal;
 import java.security.Security;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import javax.jms.ConnectionFactory;
@@ -67,20 +69,21 @@ public class Simple
 			long start = System.currentTimeMillis ();
 			api.ping (start);
 			System.out.println ("Server round trip " + (System.currentTimeMillis () - start) + "ms");
-			if ( api.isProduction () )
-			{
-				System.err.println ("You do not want to do this.");
-				System.exit (1);
-			}
+
 			Wallet w = api.getWallet ("toy.wallet", "password");
 			AccountManager am = w.getAccountManager ("one");
 
 			final Semaphore update = new Semaphore (0);
+			final List<Transaction> received = new ArrayList<Transaction> ();
 			am.addAccountListener (new AccountListener ()
 			{
 				@Override
-				public void accountChanged (AccountManager account)
+				public void accountChanged (AccountManager account, Transaction t)
 				{
+					if ( t != null ) // t is null change through new blocks
+					{
+						received.add (t);
+					}
 					update.release ();
 				}
 			});
@@ -92,6 +95,9 @@ public class Simple
 				if ( answer.equals ("1") )
 				{
 					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
+					System.console ().printf ("       settled: " + printXBT (am.getSettled ()) + "\n");
+					System.console ().printf ("       sending: " + printXBT (am.getSending ()) + "\n");
+					System.console ().printf ("    receiveing: " + printXBT (am.getReceiving ()) + "\n");
 				}
 				else if ( answer.equals ("2") )
 				{
@@ -108,6 +114,23 @@ public class Simple
 				}
 				else if ( answer.equals ("4") )
 				{
+					for ( Transaction t : am.getTransactions () )
+					{
+						System.console ().printf (t.getHash () + (t.getBlockHash () != null ? " settled " : " pending ") + "\n");
+					}
+				}
+				else if ( answer.equals ("5") )
+				{
+					update.acquireUninterruptibly ();
+					update.drainPermits ();
+					for ( Transaction t : received )
+					{
+						System.console ().printf ("Received transaction : " + t.getHash ());
+					}
+					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
+				}
+				else if ( answer.equals ("6") )
+				{
 					System.console ().printf ("Receiver address: ");
 					String address = System.console ().readLine ();
 					System.console ().printf ("amount (XBT): ");
@@ -116,11 +139,6 @@ public class Simple
 					api.sendTransaction (spend);
 					System.console ().printf ("Sent transaction: " + spend.getHash ());
 					w.persist ();
-				}
-				else if ( answer.equals ("5") )
-				{
-					update.acquireUninterruptibly ();
-					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
 				}
 				else
 				{
@@ -141,8 +159,9 @@ public class Simple
 		System.console ().printf ("1. get account balance\n");
 		System.console ().printf ("2. show addresses\n");
 		System.console ().printf ("3. get a new address\n");
-		System.console ().printf ("4. pay\n");
+		System.console ().printf ("4. transaction history\n");
 		System.console ().printf ("5. wait for update\n");
+		System.console ().printf ("6. pay\n");
 
 		System.console ().printf ("Your choice: ");
 	}
