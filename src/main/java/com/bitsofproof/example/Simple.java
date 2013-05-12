@@ -33,12 +33,15 @@ import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.BCSAPI;
 import com.bitsofproof.supernode.api.ClientBusAdaptor;
+import com.bitsofproof.supernode.api.ECKeyPair;
 import com.bitsofproof.supernode.api.Key;
 import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.Wallet;
 
 public class Simple
 {
+	private static final int addressFlag = 0x6f;
+
 	private static ConnectionFactory getConnectionFactory ()
 	{
 		StompJmsConnectionFactory connectionFactory = new StompJmsConnectionFactory ();
@@ -70,8 +73,11 @@ public class Simple
 			api.ping (start);
 			System.out.println ("Server round trip " + (System.currentTimeMillis () - start) + "ms");
 
+			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
+
 			Wallet w = api.getWallet ("toy.wallet", "password");
-			AccountManager am = w.getAccountManager ("one");
+			w.setTimeStamp (0);
+			AccountManager am = w.getAccountManager ("old");
 
 			final Semaphore update = new Semaphore (0);
 			final List<Transaction> received = new ArrayList<Transaction> ();
@@ -80,10 +86,7 @@ public class Simple
 				@Override
 				public void accountChanged (AccountManager account, Transaction t)
 				{
-					if ( t != null ) // t is null change through new blocks
-					{
-						received.add (t);
-					}
+					received.add (t);
 					update.release ();
 				}
 			});
@@ -96,8 +99,9 @@ public class Simple
 				{
 					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
 					System.console ().printf ("       settled: " + printXBT (am.getSettled ()) + "\n");
-					System.console ().printf ("       sending: " + printXBT (am.getSending ()) + "\n");
+					System.console ().printf ("       sending: " + printXBT (-am.getSending ()) + "\n");
 					System.console ().printf ("    receiveing: " + printXBT (am.getReceiving ()) + "\n");
+					System.console ().printf ("        change: " + printXBT (am.getChange ()) + "\n");
 				}
 				else if ( answer.equals ("2") )
 				{
@@ -108,18 +112,26 @@ public class Simple
 				}
 				else if ( answer.equals ("3") )
 				{
+					for ( int i = 0; i < am.getNextSequence (); ++i )
+					{
+						Key key = am.getKey (i);
+						System.console ().printf (ECKeyPair.serializeWIF (key) + "\n");
+					}
+				}
+				else if ( answer.equals ("4") )
+				{
 					Key key = am.getNextKey ();
 					w.persist ();
 					System.console ().printf (AddressConverter.toSatoshiStyle (key.getAddress (), addressFlag) + "\n");
 				}
-				else if ( answer.equals ("4") )
+				else if ( answer.equals ("5") )
 				{
 					for ( Transaction t : am.getTransactions () )
 					{
 						System.console ().printf (t.getHash () + (t.getBlockHash () != null ? " settled " : " pending ") + "\n");
 					}
 				}
-				else if ( answer.equals ("5") )
+				else if ( answer.equals ("6") )
 				{
 					update.acquireUninterruptibly ();
 					update.drainPermits ();
@@ -129,16 +141,24 @@ public class Simple
 					}
 					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
 				}
-				else if ( answer.equals ("6") )
+				else if ( answer.equals ("7") )
 				{
 					System.console ().printf ("Receiver address: ");
 					String address = System.console ().readLine ();
 					System.console ().printf ("amount (XBT): ");
 					long amount = parseXBT (System.console ().readLine ());
-					Transaction spend = am.pay (AddressConverter.fromSatoshiStyle (address, addressFlag), amount, 10000);
-					api.sendTransaction (spend);
-					System.console ().printf ("Sent transaction: " + spend.getHash ());
-					w.persist ();
+					Transaction spend = am.pay (AddressConverter.fromSatoshiStyle (address, addressFlag), amount, 50000);
+					System.console ().printf ("Type yes to go: ");
+					if ( System.console ().readLine ().equals ("yes") )
+					{
+						api.sendTransaction (spend);
+						System.console ().printf ("Sent transaction: " + spend.getHash ());
+						w.persist ();
+					}
+					else
+					{
+						System.console ().printf ("Nothing happened.");
+					}
 				}
 				else
 				{
@@ -158,10 +178,11 @@ public class Simple
 		System.console ().printf ("\n");
 		System.console ().printf ("1. get account balance\n");
 		System.console ().printf ("2. show addresses\n");
-		System.console ().printf ("3. get a new address\n");
-		System.console ().printf ("4. transaction history\n");
-		System.console ().printf ("5. wait for update\n");
-		System.console ().printf ("6. pay\n");
+		System.console ().printf ("3. show private keys\n");
+		System.console ().printf ("4. get a new address\n");
+		System.console ().printf ("5. transaction history\n");
+		System.console ().printf ("6. wait for update\n");
+		System.console ().printf ("7. pay\n");
 
 		System.console ().printf ("Your choice: ");
 	}
@@ -184,6 +205,4 @@ public class Simple
 			return n.longValue () * 100;
 		}
 	}
-
-	private static final int addressFlag = 0x6f;
 }
