@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.security.Security;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.concurrent.Semaphore;
 
 import javax.jms.ConnectionFactory;
 
@@ -73,14 +74,14 @@ public class Simple
 			}
 			Wallet w = api.getWallet ("toy.wallet", "password");
 			AccountManager am = w.getAccountManager ("one");
+
+			final Semaphore update = new Semaphore (0);
 			am.addAccountListener (new AccountListener ()
 			{
 				@Override
 				public void accountChanged (AccountManager account)
 				{
-					System.console ().printf ("\n\nBalance change: " + printXBT (account.getBalance ()));
-					printMenu ();
-					System.console ().flush ();
+					update.release ();
 				}
 			});
 			while ( true )
@@ -116,6 +117,11 @@ public class Simple
 					System.console ().printf ("Sent transaction: " + spend.getHash ());
 					w.persist ();
 				}
+				else if ( answer.equals ("5") )
+				{
+					update.acquireUninterruptibly ();
+					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
+				}
 				else
 				{
 					System.exit (0);
@@ -136,6 +142,7 @@ public class Simple
 		System.console ().printf ("2. show addresses\n");
 		System.console ().printf ("3. get a new address\n");
 		System.console ().printf ("4. pay\n");
+		System.console ().printf ("5. wait for update\n");
 
 		System.console ().printf ("Your choice: ");
 	}
