@@ -63,6 +63,9 @@ public class Simple
 
 		try
 		{
+			long start = System.currentTimeMillis ();
+			api.ping (start);
+			System.out.println ("Server round trip " + (System.currentTimeMillis () - start) + "ms");
 			if ( api.isProduction () )
 			{
 				System.err.println ("You do not want to do this.");
