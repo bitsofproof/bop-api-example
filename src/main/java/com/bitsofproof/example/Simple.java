@@ -21,6 +21,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 import javax.jms.ConnectionFactory;
@@ -31,6 +32,7 @@ import org.fusesource.stomp.jms.StompJmsConnectionFactory;
 import com.bitsofproof.supernode.api.AccountListener;
 import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
+import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
 import com.bitsofproof.supernode.api.ClientBusAdaptor;
 import com.bitsofproof.supernode.api.ECKeyPair;
@@ -55,7 +57,7 @@ public class Simple
 	{
 		ClientBusAdaptor api = new ClientBusAdaptor ();
 		api.setConnectionFactory (connectionFactory);
-		api.setClientId ("simple");
+		api.setClientId (UUID.randomUUID ().toString ());
 		api.init ();
 		return api;
 	}
@@ -66,13 +68,19 @@ public class Simple
 
 		Security.addProvider (new BouncyCastleProvider ());
 		BCSAPI api = getServer (getConnectionFactory ());
-
 		try
 		{
 			long start = System.currentTimeMillis ();
 			api.ping (start);
 			System.out.println ("Server round trip " + (System.currentTimeMillis () - start) + "ms");
-
+			api.addAlertListener (new AlertListener ()
+			{
+				@Override
+				public void alert (String s, int severity)
+				{
+					System.err.println ("ALERT: " + s);
+				}
+			});
 			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
 
 			Wallet w = api.getWallet ("toy.wallet", "password");
