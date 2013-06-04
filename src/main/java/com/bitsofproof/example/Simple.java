@@ -34,11 +34,12 @@ import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
-import com.bitsofproof.supernode.api.ClientBusAdaptor;
-import com.bitsofproof.supernode.api.ECKeyPair;
-import com.bitsofproof.supernode.api.Key;
+import com.bitsofproof.supernode.api.JMSServerConnector;
+import com.bitsofproof.supernode.api.SimpleWalletFactory;
 import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.Wallet;
+import com.bitsofproof.supernode.common.ECKeyPair;
+import com.bitsofproof.supernode.common.Key;
 
 public class Simple
 {
@@ -47,7 +48,7 @@ public class Simple
 	private static ConnectionFactory getConnectionFactory ()
 	{
 		StompJmsConnectionFactory connectionFactory = new StompJmsConnectionFactory ();
-		connectionFactory.setBrokerURI ("tcp://test-api.bitsofproof.com:61613");
+		connectionFactory.setBrokerURI ("tcp://api.bitsofproof.com:61613");
 		connectionFactory.setUsername ("demo");
 		connectionFactory.setPassword ("password");
 		return connectionFactory;
@@ -55,16 +56,16 @@ public class Simple
 
 	private static BCSAPI getServer (ConnectionFactory connectionFactory)
 	{
-		ClientBusAdaptor api = new ClientBusAdaptor ();
-		api.setConnectionFactory (connectionFactory);
-		api.setClientId (UUID.randomUUID ().toString ());
-		api.init ();
-		return api;
+		JMSServerConnector connector = new JMSServerConnector ();
+		connector.setConnectionFactory (connectionFactory);
+		connector.setClientId (UUID.randomUUID ().toString ());
+		connector.init ();
+		return connector;
 	}
 
 	public static void main (String[] args)
 	{
-		System.out.println ("bop Enterprise Server Simple Client 1.0 (c) 2013 bits of proof zrt.");
+		System.out.println ("bop Enterprise Server Simple Client 1.1 (c) 2013 bits of proof zrt.");
 
 		Security.addProvider (new BouncyCastleProvider ());
 		BCSAPI api = getServer (getConnectionFactory ());
@@ -83,7 +84,9 @@ public class Simple
 			});
 			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
 
-			Wallet w = api.getWallet ("toy.wallet", "password");
+			SimpleWalletFactory walletFactory = new SimpleWalletFactory ();
+			walletFactory.setApi (api);
+			Wallet w = walletFactory.getWallet ("toy.wallet", "password");
 			w.setTimeStamp (0);
 			AccountManager am = w.getAccountManager ("old");
 
