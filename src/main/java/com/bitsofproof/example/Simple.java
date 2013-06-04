@@ -26,6 +26,10 @@ import java.util.concurrent.Semaphore;
 
 import javax.jms.ConnectionFactory;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Options;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.fusesource.stomp.jms.StompJmsConnectionFactory;
 
@@ -37,7 +41,9 @@ import com.bitsofproof.supernode.api.BCSAPI;
 import com.bitsofproof.supernode.api.JMSServerConnector;
 import com.bitsofproof.supernode.api.SimpleWalletFactory;
 import com.bitsofproof.supernode.api.Transaction;
+import com.bitsofproof.supernode.api.TransactionListener;
 import com.bitsofproof.supernode.api.Wallet;
+import com.bitsofproof.supernode.common.BloomFilter.UpdateMode;
 import com.bitsofproof.supernode.common.ECKeyPair;
 import com.bitsofproof.supernode.common.Key;
 
@@ -45,12 +51,12 @@ public class Simple
 {
 	private static final int addressFlag = 0x6f;
 
-	private static ConnectionFactory getConnectionFactory ()
+	private static ConnectionFactory getConnectionFactory (String server, String user, String password)
 	{
 		StompJmsConnectionFactory connectionFactory = new StompJmsConnectionFactory ();
-		connectionFactory.setBrokerURI ("tcp://api.bitsofproof.com:61613");
-		connectionFactory.setUsername ("demo");
-		connectionFactory.setPassword ("password");
+		connectionFactory.setBrokerURI (server);
+		connectionFactory.setUsername (user);
+		connectionFactory.setPassword (password);
 		return connectionFactory;
 	}
 
@@ -65,10 +71,38 @@ public class Simple
 
 	public static void main (String[] args)
 	{
+		final CommandLineParser parser = new GnuParser ();
+		final Options gnuOptions = new Options ();
+		gnuOptions.addOption ("h", "help", false, "I can't help you yet");
+		gnuOptions.addOption ("s", "server", true, "Server URL");
+		gnuOptions.addOption ("u", "user", true, "User");
+		gnuOptions.addOption ("p", "password", true, "Password");
+
 		System.out.println ("bop Enterprise Server Simple Client 1.1 (c) 2013 bits of proof zrt.");
+		CommandLine cl = null;
+		String url = null;
+		String user = null;
+		String password = null;
+		try
+		{
+			cl = parser.parse (gnuOptions, args);
+			url = cl.getOptionValue ('s');
+			user = cl.getOptionValue ('u');
+			password = cl.getOptionValue ('p');
+		}
+		catch ( org.apache.commons.cli.ParseException e )
+		{
+			e.printStackTrace ();
+			System.exit (1);
+		}
+		if ( url == null || user == null || password == null )
+		{
+			System.err.println ("Need -s server -u user -p password");
+			System.exit (1);
+		}
 
 		Security.addProvider (new BouncyCastleProvider ());
-		BCSAPI api = getServer (getConnectionFactory ());
+		BCSAPI api = getServer (getConnectionFactory (url, user, password));
 		try
 		{
 			long start = System.currentTimeMillis ();
@@ -171,6 +205,20 @@ public class Simple
 						System.console ().printf ("Nothing happened.");
 					}
 				}
+				else if ( answer.equals ("8") )
+				{
+					System.console ().printf ("Address: ");
+					List<byte[]> match = new ArrayList<byte[]> ();
+					match.add (AddressConverter.fromSatoshiStyle (System.console ().readLine (), 0x0));
+					api.scanTransactions (match, UpdateMode.all, 0, new TransactionListener ()
+					{
+						@Override
+						public void process (Transaction t)
+						{
+							System.console ().printf ("Found transaction: " + t.getHash () + "\n");
+						}
+					});
+				}
 				else
 				{
 					System.exit (0);
@@ -194,6 +242,7 @@ public class Simple
 		System.console ().printf ("5. transaction history\n");
 		System.console ().printf ("6. wait for update\n");
 		System.console ().printf ("7. pay\n");
+		System.console ().printf ("8. transactions for an address\n");
 
 		System.console ().printf ("Your choice: ");
 	}
