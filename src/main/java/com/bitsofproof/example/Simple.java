@@ -38,6 +38,7 @@ import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
+import com.bitsofproof.supernode.api.ExtendedKey;
 import com.bitsofproof.supernode.api.JMSServerConnector;
 import com.bitsofproof.supernode.api.SimpleWalletFactory;
 import com.bitsofproof.supernode.api.Transaction;
@@ -171,13 +172,6 @@ public class Simple
 				}
 				else if ( answer.equals ("5") )
 				{
-					for ( Transaction t : am.getTransactions () )
-					{
-						System.console ().printf (t.getHash () + (t.getBlockHash () != null ? " settled " : " pending ") + "\n");
-					}
-				}
-				else if ( answer.equals ("6") )
-				{
 					update.acquireUninterruptibly ();
 					update.drainPermits ();
 					for ( Transaction t : received )
@@ -186,7 +180,7 @@ public class Simple
 					}
 					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
 				}
-				else if ( answer.equals ("7") )
+				else if ( answer.equals ("6") )
 				{
 					System.console ().printf ("Receiver address: ");
 					String address = System.console ().readLine ();
@@ -205,12 +199,25 @@ public class Simple
 						System.console ().printf ("Nothing happened.");
 					}
 				}
-				else if ( answer.equals ("8") )
+				else if ( answer.equals ("7") )
 				{
 					System.console ().printf ("Address: ");
 					List<byte[]> match = new ArrayList<byte[]> ();
 					match.add (AddressConverter.fromSatoshiStyle (System.console ().readLine (), 0x0));
 					api.scanTransactions (match, UpdateMode.all, 0, new TransactionListener ()
+					{
+						@Override
+						public void process (Transaction t)
+						{
+							System.console ().printf ("Found transaction: " + t.getHash () + "\n");
+						}
+					});
+				}
+				else if ( answer.equals ("8") )
+				{
+					System.console ().printf ("Public key: ");
+					ExtendedKey ek = ExtendedKey.parse (System.console ().readLine ());
+					api.scanTransactions (ek, 100, 0, new TransactionListener ()
 					{
 						@Override
 						public void process (Transaction t)
@@ -239,10 +246,10 @@ public class Simple
 		System.console ().printf ("2. show addresses\n");
 		System.console ().printf ("3. show private keys\n");
 		System.console ().printf ("4. get a new address\n");
-		System.console ().printf ("5. transaction history\n");
-		System.console ().printf ("6. wait for update\n");
-		System.console ().printf ("7. pay\n");
-		System.console ().printf ("8. transactions for an address\n");
+		System.console ().printf ("5. wait for update\n");
+		System.console ().printf ("6. pay\n");
+		System.console ().printf ("7. transactions for an address\n");
+		System.console ().printf ("8. transactions for an extended public key\n");
 
 		System.console ().printf ("Your choice: ");
 	}
