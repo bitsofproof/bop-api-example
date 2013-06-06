@@ -45,12 +45,11 @@ import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.TransactionListener;
 import com.bitsofproof.supernode.api.Wallet;
 import com.bitsofproof.supernode.common.BloomFilter.UpdateMode;
-import com.bitsofproof.supernode.common.ECKeyPair;
 import com.bitsofproof.supernode.common.Key;
 
 public class Simple
 {
-	private static final int addressFlag = 0x6f;
+	private static int addressFlag;
 
 	private static ConnectionFactory getConnectionFactory (String server, String user, String password)
 	{
@@ -119,6 +118,7 @@ public class Simple
 			});
 			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
 
+			addressFlag = api.isProduction () ? 0x0 : 0x6f;
 			SimpleWalletFactory walletFactory = new SimpleWalletFactory ();
 			walletFactory.setApi (api);
 			Wallet w = walletFactory.getWallet ("toy.wallet", "password");
@@ -158,11 +158,7 @@ public class Simple
 				}
 				else if ( answer.equals ("3") )
 				{
-					for ( int i = 0; i < am.getNextSequence (); ++i )
-					{
-						Key key = am.getKey (i);
-						System.console ().printf (ECKeyPair.serializeWIF (key) + "\n");
-					}
+					System.console ().printf (am.getMasterKey ().serialize (api.isProduction ()) + "\n");
 				}
 				else if ( answer.equals ("4") )
 				{
@@ -244,7 +240,7 @@ public class Simple
 		System.console ().printf ("\n");
 		System.console ().printf ("1. get account balance\n");
 		System.console ().printf ("2. show addresses\n");
-		System.console ().printf ("3. show private keys\n");
+		System.console ().printf ("3. show private key\n");
 		System.console ().printf ("4. get a new address\n");
 		System.console ().printf ("5. wait for update\n");
 		System.console ().printf ("6. pay\n");
