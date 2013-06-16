@@ -15,6 +15,7 @@
  */
 package com.bitsofproof.example;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.security.Security;
 import java.text.NumberFormat;
@@ -38,6 +39,7 @@ import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
+import com.bitsofproof.supernode.api.BCSAPIException;
 import com.bitsofproof.supernode.api.ExtendedKey;
 import com.bitsofproof.supernode.api.FileWallet;
 import com.bitsofproof.supernode.api.JMSServerConnector;
@@ -118,7 +120,7 @@ public class Simple
 			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
 
 			addressFlag = api.isProduction () ? 0x0 : 0x6f;
-			FileWallet w = new FileWallet ("toy.wallet");
+			final FileWallet w = new FileWallet ("toy.wallet");
 			w.setApi (api);
 			if ( !w.exists () )
 			{
@@ -139,6 +141,18 @@ public class Simple
 				{
 					received.add (t);
 					update.release ();
+					try
+					{
+						w.persist ();
+					}
+					catch ( IOException e )
+					{
+						e.printStackTrace ();
+					}
+					catch ( BCSAPIException e )
+					{
+						e.printStackTrace ();
+					}
 				}
 			});
 			while ( true )
@@ -151,8 +165,8 @@ public class Simple
 					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
 					System.console ().printf ("       settled: " + printXBT (am.getSettled ()) + "\n");
 					System.console ().printf ("    receiveing: " + printXBT (am.getReceiving ()) + "\n");
-					System.console ().printf ("       sending: " + printXBT (am.getSending ()) + "\n");
 					System.console ().printf ("        change: " + printXBT (am.getChange ()) + "\n");
+					System.console ().printf ("(      sending: " + printXBT (am.getSending ()) + ")\n");
 				}
 				else if ( answer.equals ("2") )
 				{
