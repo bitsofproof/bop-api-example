@@ -39,11 +39,10 @@ import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
 import com.bitsofproof.supernode.api.ExtendedKey;
+import com.bitsofproof.supernode.api.FileWallet;
 import com.bitsofproof.supernode.api.JMSServerConnector;
-import com.bitsofproof.supernode.api.SimpleWalletFactory;
 import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.TransactionListener;
-import com.bitsofproof.supernode.api.Wallet;
 import com.bitsofproof.supernode.common.BloomFilter.UpdateMode;
 import com.bitsofproof.supernode.common.Key;
 
@@ -119,11 +118,17 @@ public class Simple
 			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
 
 			addressFlag = api.isProduction () ? 0x0 : 0x6f;
-			SimpleWalletFactory walletFactory = new SimpleWalletFactory ();
-			walletFactory.setApi (api);
-			Wallet w = walletFactory.getWallet ("toy.wallet", "password");
-			w.setTimeStamp (0);
-			AccountManager am = w.getAccountManager ("old");
+			FileWallet w = new FileWallet ("toy.wallet");
+			w.setApi (api);
+			if ( !w.exists () )
+			{
+				w.init ("passphrase");
+				w.unlock ("passphrase");
+				w.createAccountManager ("A");
+				w.lock ();
+			}
+			w.read ("toy.wallet", 10);
+			AccountManager am = w.getAccountManager ("A");
 
 			final Semaphore update = new Semaphore (0);
 			final List<Transaction> received = new ArrayList<Transaction> ();
@@ -145,8 +150,8 @@ public class Simple
 				{
 					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
 					System.console ().printf ("       settled: " + printXBT (am.getSettled ()) + "\n");
-					System.console ().printf ("       sending: " + printXBT (-am.getSending ()) + "\n");
 					System.console ().printf ("    receiveing: " + printXBT (am.getReceiving ()) + "\n");
+					System.console ().printf ("       sending: " + printXBT (am.getSending ()) + "\n");
 					System.console ().printf ("        change: " + printXBT (am.getChange ()) + "\n");
 				}
 				else if ( answer.equals ("2") )
@@ -163,7 +168,6 @@ public class Simple
 				else if ( answer.equals ("4") )
 				{
 					Key key = am.getNextKey ();
-					w.persist ();
 					System.console ().printf (AddressConverter.toSatoshiStyle (key.getAddress (), addressFlag) + "\n");
 				}
 				else if ( answer.equals ("5") )
@@ -182,13 +186,14 @@ public class Simple
 					String address = System.console ().readLine ();
 					System.console ().printf ("amount (XBT): ");
 					long amount = parseXBT (System.console ().readLine ());
-					Transaction spend = am.pay (AddressConverter.fromSatoshiStyle (address, addressFlag), amount, 50000);
+					w.unlock ("passphrase");
+					Transaction spend = am.pay (AddressConverter.fromSatoshiStyle (address, addressFlag), amount, 10000);
+					w.lock ();
 					System.console ().printf ("Type yes to go: ");
 					if ( System.console ().readLine ().equals ("yes") )
 					{
 						api.sendTransaction (spend);
 						System.console ().printf ("Sent transaction: " + spend.getHash ());
-						w.persist ();
 					}
 					else
 					{
@@ -213,7 +218,7 @@ public class Simple
 				{
 					System.console ().printf ("Public key: ");
 					ExtendedKey ek = ExtendedKey.parse (System.console ().readLine ());
-					api.scanTransactions (ek, 100, 0, new TransactionListener ()
+					api.scanTransactions (ek, 10, 0, new TransactionListener ()
 					{
 						@Override
 						public void process (Transaction t)
