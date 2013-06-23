@@ -218,7 +218,7 @@ public class Simple
 				{
 					System.console ().printf ("Address: ");
 					List<byte[]> match = new ArrayList<byte[]> ();
-					match.add (AddressConverter.fromSatoshiStyle (System.console ().readLine (), 0x0));
+					match.add (AddressConverter.fromSatoshiStyle (System.console ().readLine (), api.isProduction () ? 0x0 : 0x6f));
 					api.scanTransactions (match, UpdateMode.all, 0, new TransactionListener ()
 					{
 						@Override
