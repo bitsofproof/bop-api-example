@@ -15,7 +15,6 @@
  */
 package com.bitsofproof.example;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.security.Security;
 import java.text.NumberFormat;
@@ -39,14 +38,13 @@ import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
-import com.bitsofproof.supernode.api.BCSAPIException;
 import com.bitsofproof.supernode.api.ExtendedKey;
 import com.bitsofproof.supernode.api.FileWallet;
 import com.bitsofproof.supernode.api.JMSServerConnector;
 import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.TransactionListener;
 import com.bitsofproof.supernode.common.BloomFilter.UpdateMode;
-import com.bitsofproof.supernode.common.Key;
+import com.bitsofproof.supernode.common.ByteUtils;
 
 public class Simple
 {
@@ -120,17 +118,24 @@ public class Simple
 			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
 
 			addressFlag = api.isProduction () ? 0x0 : 0x6f;
-			final FileWallet w = new FileWallet ("toy.wallet");
-			w.setApi (api);
+			FileWallet w = new FileWallet ("toy.wallet");
 			if ( !w.exists () )
 			{
-				w.init ("passphrase");
-				w.unlock ("passphrase");
+				System.console ().printf ("Enter passphrase: ");
+				String passphrase = System.console ().readLine ();
+				w.init (passphrase);
+				w.unlock (passphrase);
 				w.createAccountManager ("A");
 				w.lock ();
+				w.persist ();
 			}
-			w.read ("toy.wallet", 10);
+			else
+			{
+				w = FileWallet.read ("toy.wallet");
+				w.sync (api, 20);
+			}
 			AccountManager am = w.getAccountManager ("A");
+			api.registerTransactionListener (am);
 
 			final Semaphore update = new Semaphore (0);
 			final List<Transaction> received = new ArrayList<Transaction> ();
@@ -141,18 +146,6 @@ public class Simple
 				{
 					received.add (t);
 					update.release ();
-					try
-					{
-						w.persist ();
-					}
-					catch ( IOException e )
-					{
-						e.printStackTrace ();
-					}
-					catch ( BCSAPIException e )
-					{
-						e.printStackTrace ();
-					}
 				}
 			});
 			while ( true )
@@ -172,17 +165,20 @@ public class Simple
 				{
 					for ( byte[] a : am.getAddresses () )
 					{
-						System.console ().printf (AddressConverter.toSatoshiStyle (a, addressFlag) + "\n");
+						System.console ().printf (AddressConverter.toSatoshiStyle (a, addressFlag) + " (" + ByteUtils.toHex (a) + ")\n");
 					}
 				}
 				else if ( answer.equals ("3") )
 				{
-					System.console ().printf (am.getMasterKey ().serialize (api.isProduction ()) + "\n");
+					System.console ().printf (am.getMaster ().serialize (api.isProduction ()) + "\n");
 				}
 				else if ( answer.equals ("4") )
 				{
-					Key key = am.getNextKey ();
-					System.console ().printf (AddressConverter.toSatoshiStyle (key.getAddress (), addressFlag) + "\n");
+					System.console ().printf ("Enter passphrase: ");
+					String passphrase = System.console ().readLine ();
+					w.unlock (passphrase);
+					System.console ().printf (am.getMaster ().serialize (api.isProduction ()) + "\n");
+					w.lock ();
 				}
 				else if ( answer.equals ("5") )
 				{
@@ -251,6 +247,7 @@ public class Simple
 		{
 			System.err.println ("Something went wrong");
 			e.printStackTrace ();
+			System.exit (1);
 		}
 	}
 
@@ -259,8 +256,8 @@ public class Simple
 		System.console ().printf ("\n");
 		System.console ().printf ("1. get account balance\n");
 		System.console ().printf ("2. show addresses\n");
-		System.console ().printf ("3. show private key\n");
-		System.console ().printf ("4. get a new address\n");
+		System.console ().printf ("3. show public key\n");
+		System.console ().printf ("4. show private key\n");
 		System.console ().printf ("5. wait for update\n");
 		System.console ().printf ("6. pay\n");
 		System.console ().printf ("7. transactions for an address\n");
