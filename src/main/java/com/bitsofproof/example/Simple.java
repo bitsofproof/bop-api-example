@@ -40,6 +40,7 @@ import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
 import com.bitsofproof.supernode.api.ExtendedKey;
 import com.bitsofproof.supernode.api.FileWallet;
+import com.bitsofproof.supernode.api.ExtendedKeyAccountManager;
 import com.bitsofproof.supernode.api.JMSServerConnector;
 import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.TransactionListener;
@@ -170,14 +171,16 @@ public class Simple
 				}
 				else if ( answer.equals ("3") )
 				{
-					System.console ().printf (am.getMaster ().serialize (api.isProduction ()) + "\n");
+					ExtendedKeyAccountManager im = (ExtendedKeyAccountManager) am;
+					System.console ().printf (im.getMaster ().serialize (api.isProduction ()) + "\n");
 				}
 				else if ( answer.equals ("4") )
 				{
 					System.console ().printf ("Enter passphrase: ");
 					String passphrase = System.console ().readLine ();
 					w.unlock (passphrase);
-					System.console ().printf (am.getMaster ().serialize (api.isProduction ()) + "\n");
+					ExtendedKeyAccountManager im = (ExtendedKeyAccountManager) am;
+					System.console ().printf (im.getMaster ().serialize (api.isProduction ()) + "\n");
 					w.lock ();
 				}
 				else if ( answer.equals ("5") )
