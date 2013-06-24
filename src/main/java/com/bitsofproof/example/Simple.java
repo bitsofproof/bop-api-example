@@ -39,8 +39,8 @@ import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
 import com.bitsofproof.supernode.api.ExtendedKey;
-import com.bitsofproof.supernode.api.FileWallet;
 import com.bitsofproof.supernode.api.ExtendedKeyAccountManager;
+import com.bitsofproof.supernode.api.FileWallet;
 import com.bitsofproof.supernode.api.JMSServerConnector;
 import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.TransactionListener;
@@ -120,13 +120,14 @@ public class Simple
 
 			addressFlag = api.isProduction () ? 0x0 : 0x6f;
 			FileWallet w = new FileWallet ("toy.wallet");
+			AccountManager am = null;
 			if ( !w.exists () )
 			{
 				System.console ().printf ("Enter passphrase: ");
 				String passphrase = System.console ().readLine ();
 				w.init (passphrase);
 				w.unlock (passphrase);
-				w.createAccountManager ("A");
+				am = w.createAccountManager ("A");
 				w.lock ();
 				w.persist ();
 			}
@@ -134,8 +135,12 @@ public class Simple
 			{
 				w = FileWallet.read ("toy.wallet");
 				w.sync (api, 20);
+				am = w.getAccountManager ("A");
 			}
-			AccountManager am = w.getAccountManager ("A");
+			if ( am.getNumberOfKeys () == 0 )
+			{
+				am.getNextKey ();
+			}
 			api.registerTransactionListener (am);
 
 			final Semaphore update = new Semaphore (0);
@@ -157,7 +162,7 @@ public class Simple
 				if ( answer.equals ("1") )
 				{
 					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
-					System.console ().printf ("       settled: " + printXBT (am.getSettled ()) + "\n");
+					System.console ().printf ("     confirmed: " + printXBT (am.getConfirmed ()) + "\n");
 					System.console ().printf ("    receiveing: " + printXBT (am.getReceiving ()) + "\n");
 					System.console ().printf ("        change: " + printXBT (am.getChange ()) + "\n");
 					System.console ().printf ("(      sending: " + printXBT (am.getSending ()) + ")\n");
@@ -195,11 +200,13 @@ public class Simple
 				}
 				else if ( answer.equals ("6") )
 				{
+					System.console ().printf ("Enter passphrase: ");
+					String passphrase = System.console ().readLine ();
+					w.unlock (passphrase);
 					System.console ().printf ("Receiver address: ");
 					String address = System.console ().readLine ();
 					System.console ().printf ("amount (XBT): ");
 					long amount = parseXBT (System.console ().readLine ());
-					w.unlock ("passphrase");
 					Transaction spend = am.pay (AddressConverter.fromSatoshiStyle (address, addressFlag), amount, 10000);
 					w.lock ();
 					System.console ().printf ("Type yes to go: ");
@@ -240,6 +247,20 @@ public class Simple
 						}
 					});
 				}
+				else if ( answer.equals ("9") )
+				{
+					ExtendedKeyAccountManager im = (ExtendedKeyAccountManager) am;
+					im.dumpOutputs (System.out);
+				}
+				else if ( answer.equals ("0") )
+				{
+					System.console ().printf ("Enter passphrase: ");
+					String passphrase = System.console ().readLine ();
+					w.unlock (passphrase);
+					ExtendedKeyAccountManager im = (ExtendedKeyAccountManager) am;
+					im.dumpKeys (System.out);
+					w.lock ();
+				}
 				else
 				{
 					System.exit (0);
@@ -265,6 +286,8 @@ public class Simple
 		System.console ().printf ("6. pay\n");
 		System.console ().printf ("7. transactions for an address\n");
 		System.console ().printf ("8. transactions for an extended public key\n");
+		System.console ().printf ("9. dump walet\n");
+		System.console ().printf ("0. dump private keys\n");
 
 		System.console ().printf ("Your choice: ");
 	}
