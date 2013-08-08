@@ -21,8 +21,8 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.UUID;
-import java.util.concurrent.Semaphore;
 
 import javax.jms.ConnectionFactory;
 
@@ -33,7 +33,6 @@ import org.apache.commons.cli.Options;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.fusesource.stomp.jms.StompJmsConnectionFactory;
 
-import com.bitsofproof.supernode.api.AccountListener;
 import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
@@ -42,10 +41,14 @@ import com.bitsofproof.supernode.api.ExtendedKey;
 import com.bitsofproof.supernode.api.ExtendedKeyAccountManager;
 import com.bitsofproof.supernode.api.FileWallet;
 import com.bitsofproof.supernode.api.JMSServerConnector;
+import com.bitsofproof.supernode.api.KeyListAccountManager;
 import com.bitsofproof.supernode.api.Transaction;
+import com.bitsofproof.supernode.api.TransactionInput;
 import com.bitsofproof.supernode.api.TransactionListener;
+import com.bitsofproof.supernode.api.TransactionOutput;
 import com.bitsofproof.supernode.common.BloomFilter.UpdateMode;
 import com.bitsofproof.supernode.common.ByteUtils;
+import com.bitsofproof.supernode.common.ECKeyPair;
 
 public class Simple
 {
@@ -78,7 +81,7 @@ public class Simple
 		gnuOptions.addOption ("u", "user", true, "User");
 		gnuOptions.addOption ("p", "password", true, "Password");
 
-		System.out.println ("bop Enterprise Server Simple Client 1.1 (c) 2013 bits of proof zrt.");
+		System.out.println ("bop Enterprise Server Simple Client 1.1.6 (c) 2013 bits of proof zrt.");
 		CommandLine cl = null;
 		String url = null;
 		String user = null;
@@ -125,35 +128,59 @@ public class Simple
 			{
 				System.console ().printf ("Enter passphrase: ");
 				String passphrase = System.console ().readLine ();
-				w.init (passphrase);
-				w.unlock (passphrase);
-				am = w.createAccountManager ("A");
-				w.lock ();
-				w.persist ();
+				System.console ().printf ("Enter master (empty for new): ");
+				String master = System.console ().readLine ();
+				if ( master.equals ("") )
+				{
+					w.init (passphrase);
+					w.unlock (passphrase);
+					System.console ().printf ("First account: ");
+					String account = System.console ().readLine ();
+					am = w.createAccountManager (account);
+					w.lock ();
+					w.persist ();
+				}
+				else
+				{
+					StringTokenizer tokenizer = new StringTokenizer (master, "@");
+					String key = tokenizer.nextToken ();
+					long since = 0;
+					if ( tokenizer.hasMoreElements () )
+					{
+						since = Long.parseLong (tokenizer.nextToken ()) * 1000;
+					}
+					w.init (passphrase, ExtendedKey.parse (key), true, since);
+					w.unlock (passphrase);
+					System.console ().printf ("First account: ");
+					String account = System.console ().readLine ();
+					am = w.createAccountManager (account);
+					w.lock ();
+					w.persist ();
+					w.sync (api, 20);
+				}
 			}
 			else
 			{
 				w = FileWallet.read ("toy.wallet");
 				w.sync (api, 20);
-				am = w.getAccountManager ("A");
-			}
-			if ( am.getNumberOfKeys () == 0 )
-			{
-				am.getNextKey ();
+				List<String> names = w.getAccountNames ();
+				System.out.println ("Accounts:");
+				System.out.println ("---------");
+				String first = null;
+				for ( String name : names )
+				{
+					System.out.println (name);
+					if ( first == null )
+					{
+						first = name;
+					}
+				}
+				System.out.println ("---------");
+				am = w.getAccountManager (first);
+				System.out.println ("Using account " + first);
 			}
 			api.registerTransactionListener (am);
 
-			final Semaphore update = new Semaphore (0);
-			final List<Transaction> received = new ArrayList<Transaction> ();
-			am.addAccountListener (new AccountListener ()
-			{
-				@Override
-				public void accountChanged (AccountManager account, Transaction t)
-				{
-					received.add (t);
-					update.release ();
-				}
-			});
 			while ( true )
 			{
 				printMenu ();
@@ -169,6 +196,7 @@ public class Simple
 				}
 				else if ( answer.equals ("2") )
 				{
+					am.getNextKey ();
 					for ( byte[] a : am.getAddresses () )
 					{
 						System.console ().printf (AddressConverter.toSatoshiStyle (a, addressFlag) + " (" + ByteUtils.toHex (a) + ")\n");
@@ -177,7 +205,7 @@ public class Simple
 				else if ( answer.equals ("3") )
 				{
 					ExtendedKeyAccountManager im = (ExtendedKeyAccountManager) am;
-					System.console ().printf (im.getMaster ().serialize (api.isProduction ()) + "\n");
+					System.console ().printf (im.getMaster ().serialize (api.isProduction ()) + "@" + im.getCreated () / 1000 + "\n");
 				}
 				else if ( answer.equals ("4") )
 				{
@@ -185,20 +213,10 @@ public class Simple
 					String passphrase = System.console ().readLine ();
 					w.unlock (passphrase);
 					ExtendedKeyAccountManager im = (ExtendedKeyAccountManager) am;
-					System.console ().printf (im.getMaster ().serialize (api.isProduction ()) + "\n");
+					System.console ().printf (im.getMaster ().serialize (api.isProduction ()) + "@" + im.getCreated () / 1000 + "\n");
 					w.lock ();
 				}
 				else if ( answer.equals ("5") )
-				{
-					update.acquireUninterruptibly ();
-					update.drainPermits ();
-					for ( Transaction t : received )
-					{
-						System.console ().printf ("Received transaction : " + t.getHash ());
-					}
-					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
-				}
-				else if ( answer.equals ("6") )
 				{
 					System.console ().printf ("Enter passphrase: ");
 					String passphrase = System.console ().readLine ();
@@ -207,7 +225,21 @@ public class Simple
 					String address = System.console ().readLine ();
 					System.console ().printf ("amount (XBT): ");
 					long amount = parseXBT (System.console ().readLine ());
-					Transaction spend = am.pay (AddressConverter.fromSatoshiStyle (address, addressFlag), amount, 10000);
+					byte[] a = AddressConverter.fromSatoshiStyle (address, addressFlag);
+					Transaction spend = am.pay (a, amount, 10000);
+					long fee = KeyListAccountManager.estimateFee (spend);
+					spend = am.pay (a, amount, fee);
+					System.out.println ("About to send " + printXBT (amount) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: " + fee);
+					System.out.println ("inputs");
+					for ( TransactionInput in : spend.getInputs () )
+					{
+						System.out.println (in.getSourceHash () + " " + in.getIx ());
+					}
+					System.out.println ("outputs");
+					for ( TransactionOutput out : spend.getOutputs () )
+					{
+						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + out.getValue ());
+					}
 					w.lock ();
 					System.console ().printf ("Type yes to go: ");
 					if ( System.console ().readLine ().equals ("yes") )
@@ -220,7 +252,7 @@ public class Simple
 						System.console ().printf ("Nothing happened.");
 					}
 				}
-				else if ( answer.equals ("7") )
+				else if ( answer.equals ("6") )
 				{
 					System.console ().printf ("Address: ");
 					List<byte[]> match = new ArrayList<byte[]> ();
@@ -234,7 +266,7 @@ public class Simple
 						}
 					});
 				}
-				else if ( answer.equals ("8") )
+				else if ( answer.equals ("7") )
 				{
 					System.console ().printf ("Public key: ");
 					ExtendedKey ek = ExtendedKey.parse (System.console ().readLine ());
@@ -247,12 +279,12 @@ public class Simple
 						}
 					});
 				}
-				else if ( answer.equals ("9") )
+				else if ( answer.equals ("8") )
 				{
 					ExtendedKeyAccountManager im = (ExtendedKeyAccountManager) am;
 					im.dumpOutputs (System.out);
 				}
-				else if ( answer.equals ("0") )
+				else if ( answer.equals ("9") )
 				{
 					System.console ().printf ("Enter passphrase: ");
 					String passphrase = System.console ().readLine ();
@@ -260,6 +292,69 @@ public class Simple
 					ExtendedKeyAccountManager im = (ExtendedKeyAccountManager) am;
 					im.dumpKeys (System.out);
 					w.lock ();
+				}
+				else if ( answer.equals ("a") )
+				{
+					System.console ().printf ("Enter account name: ");
+					String account = System.console ().readLine ();
+					am = w.getAccountManager (account);
+					api.registerTransactionListener (am);
+				}
+				else if ( answer.equals ("c") )
+				{
+					System.console ().printf ("Enter account name: ");
+					String account = System.console ().readLine ();
+					System.console ().printf ("Enter passphrase: ");
+					String passphrase = System.console ().readLine ();
+					w.unlock (passphrase);
+					am = w.createAccountManager (account);
+					System.out.println ("using account: " + account);
+					w.lock ();
+					w.persist ();
+					api.registerTransactionListener (am);
+				}
+				else if ( answer.equals ("m") )
+				{
+					System.console ().printf ("Enter passphrase: ");
+					String passphrase = System.console ().readLine ();
+					w.unlock (passphrase);
+					System.out.println (w.getMaster ().serialize (api.isProduction ()));
+					System.out.println (w.getMaster ().getReadOnly ().serialize (true));
+					w.lock ();
+				}
+				else if ( answer.equals ("s") )
+				{
+					System.console ().printf ("Enter private key: ");
+					String key = System.console ().readLine ();
+					ECKeyPair k = ECKeyPair.parseWIF (key);
+					KeyListAccountManager alm = new KeyListAccountManager ();
+					alm.addKey (k);
+					alm.sync (api);
+					byte[] a = am.getNextKey ().getAddress ();
+					Transaction t = alm.pay (a, alm.getBalance () - 10000, 10000L);
+					long fee = KeyListAccountManager.estimateFee (t);
+					t = alm.pay (a, alm.getBalance () - fee, fee);
+					System.out.println ("About to sweep " + printXBT (alm.getBalance ()) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: " + fee);
+					System.out.println ("inputs");
+					for ( TransactionInput in : t.getInputs () )
+					{
+						System.out.println (in.getSourceHash () + " " + in.getIx ());
+					}
+					System.out.println ("outputs");
+					for ( TransactionOutput out : t.getOutputs () )
+					{
+						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + out.getValue ());
+					}
+					System.console ().printf ("Type yes to go: ");
+					if ( System.console ().readLine ().equals ("yes") )
+					{
+						api.sendTransaction (t);
+						System.console ().printf ("Sent transaction: " + t.getHash ());
+					}
+					else
+					{
+						System.console ().printf ("Nothing happened.");
+					}
 				}
 				else
 				{
@@ -282,12 +377,15 @@ public class Simple
 		System.console ().printf ("2. show addresses\n");
 		System.console ().printf ("3. show public key\n");
 		System.console ().printf ("4. show private key\n");
-		System.console ().printf ("5. wait for update\n");
-		System.console ().printf ("6. pay\n");
-		System.console ().printf ("7. transactions for an address\n");
-		System.console ().printf ("8. transactions for an extended public key\n");
-		System.console ().printf ("9. dump walet\n");
-		System.console ().printf ("0. dump private keys\n");
+		System.console ().printf ("5. pay\n");
+		System.console ().printf ("6. transactions for an address\n");
+		System.console ().printf ("7. transactions for an extended public key\n");
+		System.console ().printf ("8. dump walet\n");
+		System.console ().printf ("9. dump private keys\n");
+		System.console ().printf ("a. change account\n");
+		System.console ().printf ("c. create account\n");
+		System.console ().printf ("m. show master\n");
+		System.console ().printf ("s. sweep\n");
 
 		System.console ().printf ("Your choice: ");
 	}
