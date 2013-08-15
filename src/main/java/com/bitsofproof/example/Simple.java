@@ -26,12 +26,12 @@ import java.util.UUID;
 
 import javax.jms.ConnectionFactory;
 
+import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.fusesource.stomp.jms.StompJmsConnectionFactory;
 
 import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
@@ -56,9 +56,9 @@ public class Simple
 
 	private static ConnectionFactory getConnectionFactory (String server, String user, String password)
 	{
-		StompJmsConnectionFactory connectionFactory = new StompJmsConnectionFactory ();
-		connectionFactory.setBrokerURI (server);
-		connectionFactory.setUsername (user);
+		ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory ();
+		connectionFactory.setBrokerURL (server);
+		connectionFactory.setUserName (user);
 		connectionFactory.setPassword (password);
 		return connectionFactory;
 	}
