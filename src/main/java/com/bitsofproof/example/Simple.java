@@ -22,7 +22,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.UUID;
 
 import javax.jms.ConnectionFactory;
 
@@ -67,7 +66,6 @@ public class Simple
 	{
 		JMSServerConnector connector = new JMSServerConnector ();
 		connector.setConnectionFactory (connectionFactory);
-		connector.setClientId (UUID.randomUUID ().toString ());
 		connector.init ();
 		return connector;
 	}
@@ -156,13 +154,13 @@ public class Simple
 					am = w.createAccountManager (account);
 					w.lock ();
 					w.persist ();
-					w.sync (api, 20);
+					w.sync (api);
 				}
 			}
 			else
 			{
 				w = FileWallet.read ("toy.wallet");
-				w.sync (api, 20);
+				w.sync (api);
 				List<String> names = w.getAccountNames ();
 				System.out.println ("Accounts:");
 				System.out.println ("---------");
@@ -270,7 +268,7 @@ public class Simple
 				{
 					System.console ().printf ("Public key: ");
 					ExtendedKey ek = ExtendedKey.parse (System.console ().readLine ());
-					api.scanTransactions (ek, 10, 0, new TransactionListener ()
+					api.scanTransactions (ek, 0, 10, 0, new TransactionListener ()
 					{
 						@Override
 						public void process (Transaction t)
