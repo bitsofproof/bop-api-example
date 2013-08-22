@@ -327,7 +327,7 @@ public class Simple
 					ECKeyPair k = ECKeyPair.parseWIF (key);
 					KeyListAccountManager alm = new KeyListAccountManager ();
 					alm.addKey (k);
-					alm.sync (api);
+					alm.syncHistory (api);
 					byte[] a = am.getNextKey ().getAddress ();
 					Transaction t = alm.pay (a, alm.getBalance () - 10000, 10000L);
 					long fee = KeyListAccountManager.estimateFee (t);
