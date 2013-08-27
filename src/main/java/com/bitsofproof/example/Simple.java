@@ -32,15 +32,11 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import com.bitsofproof.supernode.api.AccountManager;
 import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
 import com.bitsofproof.supernode.api.ExtendedKey;
-import com.bitsofproof.supernode.api.ExtendedKeyAccountManager;
-import com.bitsofproof.supernode.api.FileWallet;
 import com.bitsofproof.supernode.api.JMSServerConnector;
-import com.bitsofproof.supernode.api.KeyListAccountManager;
 import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.TransactionInput;
 import com.bitsofproof.supernode.api.TransactionListener;
@@ -48,6 +44,10 @@ import com.bitsofproof.supernode.api.TransactionOutput;
 import com.bitsofproof.supernode.common.BloomFilter.UpdateMode;
 import com.bitsofproof.supernode.common.ByteUtils;
 import com.bitsofproof.supernode.common.ECKeyPair;
+import com.bitsofproof.wallet.AccountManager;
+import com.bitsofproof.wallet.ExtendedKeyAccountManager;
+import com.bitsofproof.wallet.FileWallet;
+import com.bitsofproof.wallet.KeyListAccountManager;
 
 public class Simple
 {
