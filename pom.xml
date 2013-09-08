@@ -36,8 +36,7 @@
 	</repositories>
 		
 	<properties>
-		<bop.api.version>1.2.4</bop.api.version>
-		<bop.wallet.version>1.0</bop.wallet.version>
+		<bop.api.version>1.2.6</bop.api.version>
 		<activemq.version>5.8.0</activemq.version>
 		<bouncycastle.version>1.48</bouncycastle.version>
 		<protobuf.version>2.4.1</protobuf.version>
@@ -52,11 +51,6 @@
 			<groupId>com.bitsofproof</groupId>
 			<artifactId>bitsofproof-server-api</artifactId>
 			<version>${bop.api.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.bitsofproof</groupId>
-			<artifactId>bop-wallet</artifactId>
-			<version>${bop.wallet.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.bouncycastle</groupId>

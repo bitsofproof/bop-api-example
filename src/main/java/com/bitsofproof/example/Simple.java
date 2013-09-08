@@ -32,10 +32,8 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import com.bitsofproof.supernode.api.AddressConverter;
 import com.bitsofproof.supernode.api.AlertListener;
 import com.bitsofproof.supernode.api.BCSAPI;
-import com.bitsofproof.supernode.api.ExtendedKey;
 import com.bitsofproof.supernode.api.JMSServerConnector;
 import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.TransactionInput;
@@ -44,10 +42,12 @@ import com.bitsofproof.supernode.api.TransactionOutput;
 import com.bitsofproof.supernode.common.BloomFilter.UpdateMode;
 import com.bitsofproof.supernode.common.ByteUtils;
 import com.bitsofproof.supernode.common.ECKeyPair;
-import com.bitsofproof.wallet.AccountManager;
-import com.bitsofproof.wallet.ExtendedKeyAccountManager;
-import com.bitsofproof.wallet.FileWallet;
-import com.bitsofproof.wallet.KeyListAccountManager;
+import com.bitsofproof.supernode.common.ExtendedKey;
+import com.bitsofproof.supernode.wallet.AccountManager;
+import com.bitsofproof.supernode.wallet.AddressConverter;
+import com.bitsofproof.supernode.wallet.ExtendedKeyAccountManager;
+import com.bitsofproof.supernode.wallet.KeyListAccountManager;
+import com.bitsofproof.supernode.wallet.SimpleFileWallet;
 
 public class Simple
 {
@@ -79,7 +79,7 @@ public class Simple
 		gnuOptions.addOption ("u", "user", true, "User");
 		gnuOptions.addOption ("p", "password", true, "Password");
 
-		System.out.println ("bop Enterprise Server Simple Client 1.1.6 (c) 2013 bits of proof zrt.");
+		System.out.println ("bop Enterprise Server Simple Client 1.2.6 (c) 2013 bits of proof zrt.");
 		CommandLine cl = null;
 		String url = null;
 		String user = null;
@@ -120,7 +120,7 @@ public class Simple
 			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
 
 			addressFlag = api.isProduction () ? 0x0 : 0x6f;
-			FileWallet w = new FileWallet ("toy.wallet");
+			SimpleFileWallet w = new SimpleFileWallet ("toy.wallet");
 			AccountManager am = null;
 			if ( !w.exists () )
 			{
@@ -159,7 +159,7 @@ public class Simple
 			}
 			else
 			{
-				w = FileWallet.read ("toy.wallet");
+				w = SimpleFileWallet.read ("toy.wallet");
 				w.sync (api);
 				List<String> names = w.getAccountNames ();
 				System.out.println ("Accounts:");
@@ -186,11 +186,11 @@ public class Simple
 				System.console ().printf ("\n");
 				if ( answer.equals ("1") )
 				{
-					System.console ().printf ("The balance is: " + printXBT (am.getBalance ()) + "\n");
-					System.console ().printf ("     confirmed: " + printXBT (am.getConfirmed ()) + "\n");
-					System.console ().printf ("    receiveing: " + printXBT (am.getReceiving ()) + "\n");
-					System.console ().printf ("        change: " + printXBT (am.getChange ()) + "\n");
-					System.console ().printf ("(      sending: " + printXBT (am.getSending ()) + ")\n");
+					System.console ().printf ("The balance is: " + printBTC (am.getBalance ()) + "\n");
+					System.console ().printf ("     confirmed: " + printBTC (am.getConfirmed ()) + "\n");
+					System.console ().printf ("    receiveing: " + printBTC (am.getReceiving ()) + "\n");
+					System.console ().printf ("        change: " + printBTC (am.getChange ()) + "\n");
+					System.console ().printf ("(      sending: " + printBTC (am.getSending ()) + ")\n");
 				}
 				else if ( answer.equals ("2") )
 				{
@@ -222,12 +222,12 @@ public class Simple
 					System.console ().printf ("Receiver address: ");
 					String address = System.console ().readLine ();
 					System.console ().printf ("amount (XBT): ");
-					long amount = parseXBT (System.console ().readLine ());
+					long amount = parseBTC (System.console ().readLine ());
 					byte[] a = AddressConverter.fromSatoshiStyle (address, addressFlag);
 					Transaction spend = am.pay (a, amount, 10000);
 					long fee = KeyListAccountManager.estimateFee (spend);
-					spend = am.pay (a, amount, fee);
-					System.out.println ("About to send " + printXBT (amount) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: " + fee);
+					spend = am.pay (a, amount);
+					System.out.println ("About to send " + printBTC (amount) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: " + printBTC (fee));
 					System.out.println ("inputs");
 					for ( TransactionInput in : spend.getInputs () )
 					{
@@ -236,7 +236,7 @@ public class Simple
 					System.out.println ("outputs");
 					for ( TransactionOutput out : spend.getOutputs () )
 					{
-						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + out.getValue ());
+						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + printBTC (out.getValue ()));
 					}
 					w.lock ();
 					System.console ().printf ("Type yes to go: ");
@@ -332,7 +332,8 @@ public class Simple
 					Transaction t = alm.pay (a, alm.getBalance () - 10000, 10000L);
 					long fee = KeyListAccountManager.estimateFee (t);
 					t = alm.pay (a, alm.getBalance () - fee, fee);
-					System.out.println ("About to sweep " + printXBT (alm.getBalance ()) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: " + fee);
+					System.out.println ("About to sweep " + printBTC (alm.getBalance ()) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: "
+							+ printBTC (fee));
 					System.out.println ("inputs");
 					for ( TransactionInput in : t.getInputs () )
 					{
@@ -341,7 +342,7 @@ public class Simple
 					System.out.println ("outputs");
 					for ( TransactionOutput out : t.getOutputs () )
 					{
-						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + out.getValue ());
+						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + printBTC (out.getValue ()));
 					}
 					System.console ().printf ("Type yes to go: ");
 					if ( System.console ().readLine ().equals ("yes") )
@@ -388,22 +389,22 @@ public class Simple
 		System.console ().printf ("Your choice: ");
 	}
 
-	public static String printXBT (long n)
+	public static String printBTC (long n)
 	{
-		BigDecimal xbt = BigDecimal.valueOf (n).divide (BigDecimal.valueOf (100));
-		return NumberFormat.getNumberInstance ().format (xbt) + " XBT";
+		BigDecimal xbt = BigDecimal.valueOf (n).divide (BigDecimal.valueOf (100000000));
+		return NumberFormat.getNumberInstance ().format (xbt) + " BTC";
 	}
 
-	public static long parseXBT (String s) throws ParseException
+	public static long parseBTC (String s) throws ParseException
 	{
 		Number n = NumberFormat.getNumberInstance ().parse (s);
 		if ( n instanceof BigDecimal )
 		{
-			return ((BigDecimal) n).multiply (BigDecimal.valueOf (100)).longValue ();
+			return ((BigDecimal) n).multiply (BigDecimal.valueOf (100000000)).longValue ();
 		}
 		else
 		{
-			return n.longValue () * 100;
+			return n.longValue () * 100000000;
 		}
 	}
 }
