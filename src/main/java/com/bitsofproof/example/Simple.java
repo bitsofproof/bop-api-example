@@ -221,7 +221,7 @@ public class Simple
 					w.unlock (passphrase);
 					System.console ().printf ("Receiver address: ");
 					String address = System.console ().readLine ();
-					System.console ().printf ("amount (XBT): ");
+					System.console ().printf ("amount (BTC): ");
 					long amount = parseBTC (System.console ().readLine ());
 					byte[] a = AddressConverter.fromSatoshiStyle (address, addressFlag);
 					Transaction spend = am.pay (a, amount, 10000);
