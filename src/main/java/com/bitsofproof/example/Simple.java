@@ -186,11 +186,11 @@ public class Simple
 				System.console ().printf ("\n");
 				if ( answer.equals ("1") )
 				{
-					System.console ().printf ("The balance is: " + printBTC (am.getBalance ()) + "\n");
-					System.console ().printf ("     confirmed: " + printBTC (am.getConfirmed ()) + "\n");
-					System.console ().printf ("    receiveing: " + printBTC (am.getReceiving ()) + "\n");
-					System.console ().printf ("        change: " + printBTC (am.getChange ()) + "\n");
-					System.console ().printf ("(      sending: " + printBTC (am.getSending ()) + ")\n");
+					System.console ().printf ("The balance is: " + printuBTC (am.getBalance ()) + "\n");
+					System.console ().printf ("     confirmed: " + printuBTC (am.getConfirmed ()) + "\n");
+					System.console ().printf ("    receiveing: " + printuBTC (am.getReceiving ()) + "\n");
+					System.console ().printf ("        change: " + printuBTC (am.getChange ()) + "\n");
+					System.console ().printf ("(      sending: " + printuBTC (am.getSending ()) + ")\n");
 				}
 				else if ( answer.equals ("2") )
 				{
@@ -221,13 +221,13 @@ public class Simple
 					w.unlock (passphrase);
 					System.console ().printf ("Receiver address: ");
 					String address = System.console ().readLine ();
-					System.console ().printf ("amount (BTC): ");
-					long amount = parseBTC (System.console ().readLine ());
+					System.console ().printf ("amount (uBTC): ");
+					long amount = parseuBTC (System.console ().readLine ());
 					byte[] a = AddressConverter.fromSatoshiStyle (address, addressFlag);
 					Transaction spend = am.pay (a, amount, 10000);
 					long fee = KeyListAccountManager.estimateFee (spend);
 					spend = am.pay (a, amount);
-					System.out.println ("About to send " + printBTC (amount) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: " + printBTC (fee));
+					System.out.println ("About to send " + printuBTC (amount) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: " + printuBTC (fee));
 					System.out.println ("inputs");
 					for ( TransactionInput in : spend.getInputs () )
 					{
@@ -236,7 +236,7 @@ public class Simple
 					System.out.println ("outputs");
 					for ( TransactionOutput out : spend.getOutputs () )
 					{
-						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + printBTC (out.getValue ()));
+						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + printuBTC (out.getValue ()));
 					}
 					w.lock ();
 					System.console ().printf ("Type yes to go: ");
@@ -332,8 +332,8 @@ public class Simple
 					Transaction t = alm.pay (a, alm.getBalance () - 10000, 10000L);
 					long fee = KeyListAccountManager.estimateFee (t);
 					t = alm.pay (a, alm.getBalance () - fee, fee);
-					System.out.println ("About to sweep " + printBTC (alm.getBalance ()) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: "
-							+ printBTC (fee));
+					System.out.println ("About to sweep " + printuBTC (alm.getBalance ()) + " to " + AddressConverter.toSatoshiStyle (a, 0x0) + " fee: "
+							+ printuBTC (fee));
 					System.out.println ("inputs");
 					for ( TransactionInput in : t.getInputs () )
 					{
@@ -342,7 +342,7 @@ public class Simple
 					System.out.println ("outputs");
 					for ( TransactionOutput out : t.getOutputs () )
 					{
-						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + printBTC (out.getValue ()));
+						System.out.println (AddressConverter.toSatoshiStyle (out.getOutputAddress (), 0x0) + " " + printuBTC (out.getValue ()));
 					}
 					System.console ().printf ("Type yes to go: ");
 					if ( System.console ().readLine ().equals ("yes") )
@@ -389,22 +389,22 @@ public class Simple
 		System.console ().printf ("Your choice: ");
 	}
 
-	public static String printBTC (long n)
+	public static String printuBTC (long n)
 	{
-		BigDecimal xbt = BigDecimal.valueOf (n).divide (BigDecimal.valueOf (100000000));
-		return NumberFormat.getNumberInstance ().format (xbt) + " BTC";
+		BigDecimal xbt = BigDecimal.valueOf (n).divide (BigDecimal.valueOf (100));
+		return NumberFormat.getNumberInstance ().format (xbt) + " uBTC";
 	}
 
-	public static long parseBTC (String s) throws ParseException
+	public static long parseuBTC (String s) throws ParseException
 	{
 		Number n = NumberFormat.getNumberInstance ().parse (s);
 		if ( n instanceof BigDecimal )
 		{
-			return ((BigDecimal) n).multiply (BigDecimal.valueOf (100000000)).longValue ();
+			return ((BigDecimal) n).multiply (BigDecimal.valueOf (100)).longValue ();
 		}
 		else
 		{
-			return n.longValue () * 100000000;
+			return n.longValue () * 100;
 		}
 	}
 }
