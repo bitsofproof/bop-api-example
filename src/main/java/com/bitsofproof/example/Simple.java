@@ -162,7 +162,7 @@ public class Simple
 			}
 			else
 			{
-				w = SimpleFileWallet.read ("toy.wallet");
+				w = SimpleFileWallet.read (wallet + ".wallet");
 				w.sync (api);
 				List<String> names = w.getAccountNames ();
 				System.out.println ("Accounts:");
