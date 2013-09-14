@@ -120,7 +120,10 @@ public class Simple
 			System.out.println ("Talking to " + (api.isProduction () ? "PRODUCTION" : "test") + " server");
 
 			addressFlag = api.isProduction () ? 0x0 : 0x6f;
-			SimpleFileWallet w = new SimpleFileWallet ("toy.wallet");
+
+			System.console ().printf ("Please enter wallet name: ");
+			String wallet = System.console ().readLine ();
+			SimpleFileWallet w = new SimpleFileWallet (wallet + ".wallet");
 			AccountManager am = null;
 			if ( !w.exists () )
 			{
