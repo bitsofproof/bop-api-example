@@ -44,7 +44,6 @@ import com.bitsofproof.supernode.api.Transaction;
 import com.bitsofproof.supernode.api.TransactionInput;
 import com.bitsofproof.supernode.api.TransactionListener;
 import com.bitsofproof.supernode.api.TransactionOutput;
-import com.bitsofproof.supernode.common.BloomFilter.UpdateMode;
 import com.bitsofproof.supernode.common.ECKeyPair;
 import com.bitsofproof.supernode.common.ExtendedKey;
 import com.bitsofproof.supernode.jms.JMSServerConnector;
@@ -254,7 +253,7 @@ public class Simple
 					System.console ().printf ("Address: ");
 					Set<Address> match = new HashSet<Address> ();
 					match.add (Address.fromSatoshiStyle (System.console ().readLine ()));
-					api.scanTransactionsForAddresses (match, UpdateMode.all, 0, new TransactionListener ()
+					api.scanTransactionsForAddresses (match, 0, new TransactionListener ()
 					{
 						@Override
 						public boolean process (Transaction t)
