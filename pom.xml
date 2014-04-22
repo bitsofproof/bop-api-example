@@ -199,15 +199,4 @@
 		</extensions>
 	</build>
 
-	<distributionManagement>
-		<downloadUrl>http://maven.bitsofproof.com/maven</downloadUrl>
-		<repository>
-			<id>bitsofproof</id>
-			<uniqueVersion>false</uniqueVersion>
-			<name>BOP Enterprise Bitcoin Server Repository</name>
-			<url>scp://maven@maven.bitsofproof.com/home/maven/repository</url>
-			<layout>default</layout>
-		</repository>
-	</distributionManagement>
-
 </project>
