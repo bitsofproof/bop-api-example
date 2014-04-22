@@ -27,6 +27,19 @@
 		</developer>
 	</developers>
 
+	<distributionManagement>
+		<repository>
+			<id>bitsofproof</id>
+			<name>bop internal repository</name>
+			<url>https://bitsofproof.com/nexus/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>bitsofproof</id>
+			<name>bop internal repository</name>
+			<url>https://bitsofproof.com/nexus/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 	<repositories>
 		<repository>
 			<id>bitsofproof-public</id>
