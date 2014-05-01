@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.bitsofproof</groupId>
 	<artifactId>bop-api-example</artifactId>
-	<version>3.4.4</version>
+	<version>3.4.5-SNAPSHOT</version>
 	<name>bop-api-example</name>
 	<description>A simple client for the bits of proof implementation of the Bitcoin protocol</description>
 	<packaging>jar</packaging>
@@ -50,7 +50,7 @@
 
 	<properties>
 		<bop.api.version>3.4.4</bop.api.version>
-		<bop.account.version>3.4.4</bop.account.version>
+		<bop.account.version>3.4.6-SNAPSHOT</bop.account.version>
 		<bop.misc.version>3.4.4</bop.misc.version>
 		<activemq.version>5.8.0</activemq.version>
 		<bouncycastle.version>1.50</bouncycastle.version>
