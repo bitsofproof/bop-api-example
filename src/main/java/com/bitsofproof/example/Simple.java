@@ -47,7 +47,7 @@ import com.bitsofproof.supernode.api.TransactionListener;
 import com.bitsofproof.supernode.api.TransactionOutput;
 import com.bitsofproof.supernode.common.ECKeyPair;
 import com.bitsofproof.supernode.common.ExtendedKey;
-import com.bitsofproof.supernode.connector.BCSAPIConnector;
+import com.bitsofproof.supernode.connector.BCSAPIClient;
 import com.bitsofproof.supernode.jms.JMSConnectorFactory;
 import com.bitsofproof.supernode.misc.SimpleFileWallet;
 
@@ -55,8 +55,8 @@ public class Simple
 {
 	private static BCSAPI getServer (String server, String user, String password)
 	{
-		BCSAPIConnector api = new BCSAPIConnector ();
-		api.setConnectionFactory (new JMSConnectorFactory (server, user, password));
+		BCSAPIClient api = new BCSAPIClient ();
+		api.setConnectionFactory (new JMSConnectorFactory (user, password, server));
 		api.init ();
 		return api;
 	}
