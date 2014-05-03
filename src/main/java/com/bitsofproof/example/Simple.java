@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import javax.jms.ConnectionFactory;
-
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -39,6 +36,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import com.bitsofproof.supernode.account.ConfirmationManager;
 import com.bitsofproof.supernode.account.ExtendedKeyAccountManager;
 import com.bitsofproof.supernode.account.KeyListAccountManager;
+import com.bitsofproof.supernode.account.PaymentOptions;
 import com.bitsofproof.supernode.account.TransactionFactory;
 import com.bitsofproof.supernode.api.Address;
 import com.bitsofproof.supernode.api.AlertListener;
@@ -49,26 +47,18 @@ import com.bitsofproof.supernode.api.TransactionListener;
 import com.bitsofproof.supernode.api.TransactionOutput;
 import com.bitsofproof.supernode.common.ECKeyPair;
 import com.bitsofproof.supernode.common.ExtendedKey;
-import com.bitsofproof.supernode.jms.JMSServerConnector;
+import com.bitsofproof.supernode.connector.BCSAPIConnector;
+import com.bitsofproof.supernode.jms.JMSConnectorFactory;
 import com.bitsofproof.supernode.misc.SimpleFileWallet;
 
 public class Simple
 {
-	private static ConnectionFactory getConnectionFactory (String server, String user, String password)
+	private static BCSAPI getServer (String server, String user, String password)
 	{
-		ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory ();
-		connectionFactory.setBrokerURL (server);
-		connectionFactory.setUserName (user);
-		connectionFactory.setPassword (password);
-		return connectionFactory;
-	}
-
-	private static BCSAPI getServer (ConnectionFactory connectionFactory)
-	{
-		JMSServerConnector connector = new JMSServerConnector ();
-		connector.setConnectionFactory (connectionFactory);
-		connector.init ();
-		return connector;
+		BCSAPIConnector api = new BCSAPIConnector ();
+		api.setConnectionFactory (new JMSConnectorFactory (server, user, password));
+		api.init ();
+		return api;
 	}
 
 	public static void main (String[] args)
@@ -105,7 +95,7 @@ public class Simple
 			System.exit (1);
 		}
 
-		BCSAPI api = getServer (getConnectionFactory (url, user, password));
+		BCSAPI api = getServer (url, user, password);
 		try
 		{
 			BufferedReader input = new BufferedReader (new InputStreamReader (System.in));
@@ -233,7 +223,7 @@ public class Simple
 						String address = input.readLine ();
 						System.out.printf ("amount (Bit): ");
 						long amount = parseBit (input.readLine ());
-						spend = am.pay (Address.fromSatoshiStyle (address), amount, true);
+						spend = am.pay (Address.fromSatoshiStyle (address), amount);
 						System.out.println ("About to send " + printBit (amount) + " to " + address);
 					}
 					else
@@ -251,7 +241,7 @@ public class Simple
 							amounts.add (amount);
 							total += amount;
 						}
-						spend = am.pay (addresses, amounts, true);
+						spend = am.pay (addresses, amounts);
 						System.out.println ("About to send " + printBit (total));
 					}
 					System.out.println ("inputs");
@@ -345,7 +335,7 @@ public class Simple
 					alm.addKey (k);
 					alm.syncHistory (api);
 					Address a = am.getNextReceiverAddress ();
-					Transaction t = alm.pay (a, alm.getBalance (), false);
+					Transaction t = alm.pay (a, alm.getBalance (), PaymentOptions.receiverPaysFee);
 					System.out.println ("About to sweep " + printBit (alm.getBalance ()) + " to " + a);
 					System.out.println ("inputs");
 					for ( TransactionInput in : t.getInputs () )
