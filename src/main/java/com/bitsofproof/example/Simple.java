@@ -72,7 +72,7 @@ public class Simple
 		gnuOptions.addOption ("u", "user", true, "User");
 		gnuOptions.addOption ("p", "password", true, "Password");
 
-		System.out.println ("BOP Bitcoin Server Simple Client 3.4.0 (c) 2013-2014 bits of proof zrt.");
+		System.out.println ("BOP Bitcoin Server Simple Client 3.5.0 (c) 2013-2014 bits of proof zrt.");
 		CommandLine cl = null;
 		String url = null;
 		String user = null;
